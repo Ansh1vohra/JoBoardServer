@@ -44,8 +44,8 @@ router.get('/jobdetail/:id', async (req, res) => {
             console.log('Internship not found');
             return res.status(404).json({ message: 'Internship not found' });
         }
-        const companyDetails = await db.collection('Company').findOne({companyId:internship.CompanyId});
-        const jobDetails = {...internship,companyName:companyDetails.companyName};
+        const companyDetails = await db.collection('Company').findOne({ companyId: internship.CompanyId });
+        const jobDetails = { ...internship, companyName: companyDetails.companyName };
         res.json(jobDetails);
     } catch (error) {
         console.error('Error fetching internship:', error);
@@ -69,37 +69,59 @@ router.post('/getJobByCID', async (req, res) => {
     }
 });
 
-router.post('/postJob',async(req,res)=>{
-    const db=getDB();
+router.post('/postJob', async (req, res) => {
+    const db = getDB();
     const { jobTitle, jobType, jobLocation, skills, minExp, description, location, lastDate, duration, time, CompanyId } = req.body;
-    const jobID = 'i12';
-
-    const newJob = {
-        jobTitle,
-        jobType,
-        jobLocation,
-        skills,
-        minExp,
-        description,
-        location,
-        lastDate: new Date(lastDate),
-        duration: parseInt(duration, 10),
-        time,
-        CompanyId,
-        jobID
-    };
 
     try {
-        if (jobType === "Internship"){
-            const res1 = await db.collection('Jobs').find()
+        let prefix = '';
+        if (jobType === "Internship") {
+            prefix = 'i';
+        } else if (jobType === "Job") {
+            prefix = 'j';
+        } else {
+            return res.status(400).json({ message: 'Invalid jobType. It must be either "Internship" or "Job".' });
         }
+
+        const latestJob = await db.collection('Jobs')
+            .find({ jobID: { $regex: `^${prefix}` } })
+            .sort({ _id: -1 }) // Sort by _id in descending order to get the latest
+            .limit(1)
+            .toArray();
+
+        // Calculate the new jobID
+        let newIDNumber = 1; // Default if no jobs exist
+
+        if (latestJob.length > 0) {
+            const highestJobID = latestJob[0].jobID;
+            newIDNumber = parseInt(highestJobID.substring(1)) + 1; // Increment the ID number
+        }
+
+        const jobID = `${prefix}${newIDNumber}`;
+
+        // Create the new job object
+        const newJob = {
+            jobTitle,
+            jobType,
+            jobLocation,
+            skills,
+            minExp,
+            description,
+            location,
+            lastDate: new Date(lastDate), // Ensure lastDate is a valid date
+            duration: parseInt(duration, 10), // Ensure duration is an integer
+            time,
+            CompanyId,
+            jobID,
+        };
+
+        // Insert the new job into the database
         const result = await db.collection('Jobs').insertOne(newJob);
         res.status(201).json({ message: 'Job Posted Successfully!', jobId: result.insertedId });
+
     } catch (error) {
         console.error('Error posting job:', error);
         res.status(500).json({ message: 'Error posting job', error: error.message });
     }
 });
-
-
 module.exports = router;

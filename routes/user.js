@@ -66,6 +66,36 @@ async function sendEmail(to, subject, text) {
     }
 }
 
+async function reciveEmail(from, subject, text) {
+    try {
+        const accessToken = await oAuth2Client.getAccessToken();
+
+        const transporter = nodemailer.createTransport({
+            service:'gmail',
+            auth: {
+                type: 'OAuth2',
+                user: process.env.EMAIL_USER,
+                clientId: process.env.CLIENT_ID,
+                clientSecret: process.env.CLIENT_SECRET,
+                refreshToken: process.env.REFRESH_TOKEN,
+                accessToken: accessToken.token
+            }
+        });
+
+        const mailOptions = {
+            from,
+            to: `<${process.env.EMAIL_USER}>`,
+            subject,
+            text
+        };
+
+        const result = await transporter.sendMail(mailOptions);
+        console.log('Email sent successfully:', result);
+    } catch (error) {
+        console.error('Error sending email:', error);
+    }
+}
+
 
 // Function to send email for Nithish's project
 async function sendEmailNithish(to, subject, text) {
@@ -145,5 +175,16 @@ router.post('/sendOTPtoNithish', async (req, res) => {
         res.status(500).json({ message: 'Server error', error: err.message });
     }
 });
+
+router.post('/reciveMail', async (req,res) =>{
+    const { email, mailBody } = req.body;
+    try{
+        await reciveEmail(email,"Email from Portfolio",`${mailBody}`);
+        return res.status(200).json({ message: 'mail sent successfully' });
+    }catch (err) {
+        console.error('Error occurred while sending OTP:', err);
+        res.status(500).json({ message: 'Server error', error: err.message });
+    }
+})
 
 module.exports = router;
