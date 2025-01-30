@@ -6,7 +6,7 @@ const router = express.Router();
 router.get('/internships', async (req, res) => {
     try {
         const db = getDB();
-        const internships = await db.collection('Jobs').find({ jobType: "Internship" }).toArray();
+        const internships = await db.collection('Jobs').find({ jobType: "Internship" }).sort({ _id: -1 }).toArray();
         const detailedInternships = await Promise.all(internships.map(async (app) => {
             const job = await db.collection('Company').findOne({ companyId: app.CompanyId });
             return { ...app, companyName: job.companyName, postedOn: app._id.getTimestamp() };
@@ -21,7 +21,7 @@ router.get('/internships', async (req, res) => {
 router.get('/getjobs', async (req, res) => {
     try {
         const db = getDB();
-        const jobs = await db.collection('Jobs').find({ jobType: "Job" }).toArray();
+        const jobs = await db.collection('Jobs').find({ jobType: "Job" }).sort({ _id: -1 }).toArray();
         const detailedJobs = await Promise.all(jobs.map(async (app) => {
             const job = await db.collection('Company').findOne({ companyId: app.CompanyId });
             return { ...app, companyName: job.companyName, postedOn: app._id.getTimestamp() };

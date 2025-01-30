@@ -34,7 +34,7 @@ router.post('/userApplications', async (req, res) => {
     }
     const db = getDB();
     try {
-        const applications = await db.collection('Applications').find({ userMail }).toArray();
+        const applications = await db.collection('Applications').find({ userMail }).sort({ _id: -1 }).toArray();
 
         const detailedApplications = await Promise.all(applications.map(async (app) => {
             const job = await db.collection('Jobs').findOne({ jobID: app.jobID });
@@ -65,7 +65,7 @@ router.post('/getApplicationsByJobID', async (req, res) => {
     const db = getDB();
     const { jobID } = req.body;
     try {
-        const applications = await db.collection('Applications').find({ jobID: jobID }).toArray();
+        const applications = await db.collection('Applications').find({ jobID: jobID }).sort({ _id: -1 }).toArray();
         res.status(200).json({ applications });
     } catch (error) {
         console.error('Error retrieving applications:', error);
