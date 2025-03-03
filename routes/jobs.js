@@ -1,6 +1,6 @@
 const express = require('express');
 const { getDB } = require('../config/db');
-const { ObjectId } = require('mongodb'); // Add ObjectId import
+const { ObjectId } = require('mongodb');
 const router = express.Router();
 
 router.get('/internships', async (req, res) => {

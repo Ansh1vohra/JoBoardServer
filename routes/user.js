@@ -154,7 +154,6 @@ router.post('/signin', async (req, res) => {
 router.post('/sendOTP', async (req, res) => {
     const { email, OTP } = req.body;
     try {
-        // Send OTP via email
         await sendEmail(email, 'Your OTP Code', `Your OTP code is ${OTP}`);
         return res.status(200).json({ message: 'OTP sent successfully', OTP });
     } catch (err) {
