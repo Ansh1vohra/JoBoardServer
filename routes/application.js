@@ -28,13 +28,20 @@ router.post('/applyJob', upload.single('resume'), async (req, res) => {
 });
 
 router.post('/userApplications', async (req, res) => {
-    const { userMail } = req.body;
+    const { userMail, page = 1, pageSize = 10 } = req.body;
     if (!userMail) {
         return res.status(400).json({ message: 'UserMail not provided' });
     }
     const db = getDB();
     try {
-        const applications = await db.collection('Applications').find({ userMail }).sort({ _id: -1 }).toArray();
+        // Use pagination
+        const applications = await db.collection('Applications')
+            .find({ userMail })
+            .skip((page - 1) * pageSize)  // Skip the documents of the previous pages
+            .limit(pageSize)  // Limit the number of documents per page
+            .project({ resume: 0 })  // Exclude the resume field
+            .sort({ _id: -1 })
+            .toArray();
 
         const detailedApplications = await Promise.all(applications.map(async (app) => {
             const job = await db.collection('Jobs').findOne({ jobID: app.jobID });
@@ -59,7 +66,6 @@ router.post('/userApplications', async (req, res) => {
         res.status(500).json({ message: 'Error fetching application history', error: error.message });
     }
 });
-
 
 router.post('/getApplicationsByJobID', async (req, res) => {
     const db = getDB();
