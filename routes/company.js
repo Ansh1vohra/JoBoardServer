@@ -2,31 +2,67 @@ const express = require('express');
 const { getDB } = require('../config/db');
 const router = express.Router();
 const nodemailer = require('nodemailer');
+const { google } = require('googleapis');
 const dotenv = require('dotenv');
 dotenv.config();
 
-const transporter = nodemailer.createTransport({
-    host: 'smtp.office365.com',
-    port: 587,
-    secure: false, // true for 465, false for other ports
-    auth: {
-        user: process.env.EMAIL_USER, // replace with your Outlook email
-        pass: process.env.EMAIL_PASS  // replace with your app password
-    },
-    tls: {
-        ciphers: 'SSLv3'
-    }
+// Create OAuth2 client with credentials
+const oAuth2Client = new google.auth.OAuth2(
+    process.env.CLIENT_ID,
+    process.env.CLIENT_SECRET,
+    process.env.REDIRECT_URI
+);
+
+
+// Define the required scopes for sending emails via Gmail
+// const SCOPES = ['https://www.googleapis.com/auth/gmail.send'];
+
+// Set credentials with the refresh token
+oAuth2Client.setCredentials({
+    refresh_token: process.env.REFRESH_TOKEN
 });
 
-async function sendEmail(to, subject, text) {
-    let info = await transporter.sendMail({
-        from: `"JoBoard" <${process.env.EMAIL_USER}>`,
-        to,
-        subject,
-        text
-    });
+// Optional: Generate the URL for first-time authorization
+// Uncomment the following block if you need to generate new tokens
 
-    console.log('Message sent: %s', info.messageId);
+/*
+const authorizeUrl = oAuth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: SCOPES, // Use the required scope here
+});
+
+console.log('Authorize this app by visiting this URL:', authorizeUrl);
+*/
+
+// Function to send email
+async function sendEmail(to, subject, text) {
+    try {
+        const accessToken = await oAuth2Client.getAccessToken();
+
+        const transporter = nodemailer.createTransport({
+            service:'gmail',
+            auth: {
+                type: 'OAuth2',
+                user: process.env.EMAIL_USER,
+                clientId: process.env.CLIENT_ID,
+                clientSecret: process.env.CLIENT_SECRET,
+                refreshToken: process.env.REFRESH_TOKEN,
+                accessToken: accessToken.token
+            }
+        });
+
+        const mailOptions = {
+            from: `"JoBoard" <${process.env.EMAIL_USER}>`,
+            to,
+            subject,
+            text
+        };
+
+        const result = await transporter.sendMail(mailOptions);
+        console.log('Email sent successfully:', result);
+    } catch (error) {
+        console.error('Error sending email:', error);
+    }
 }
 
 router.post('/createCompanyUser', async (req, res) => {
